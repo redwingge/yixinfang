@@ -998,19 +998,14 @@
                 <div class="pages-grid">
                     ${pages.map(page => `
                         <div class="page-card" onclick="viewPDF(${volumeNumber}, ${page.number}, '${page.pdfUrl}')">
-                            <div class="page-preview" id="preview-v${volumeNumber}-p${page.number}" data-pdf-url="${page.pdfUrl}">
-                                <div class="thumb-skeleton" aria-hidden="true"></div>
-                            </div>
                             <span class="page-number">第 ${page.number} 页</span>
                             <div>${page.description || ""}</div>
                         </div>
                     `).join('')}
                 </div>
             `;
-            initPageThumbnails(volumeNumber);
+            // 不再加载缩略图
         }
-
-        // 返回卷目列表
         function backToVolumeList() {
             document.getElementById('volume-detail').style.display = 'none';
             document.getElementById('pdf-viewer').style.display = 'none';
@@ -1295,61 +1290,6 @@
             ].join('');
             resultsDiv.innerHTML = html;
         }
-
-        // 缩略图懒加载
-        function initPageThumbnails(volumeNumber) {
-            const previews = document.querySelectorAll(`#volume-detail .page-preview[data-pdf-url]`);
-            if (!previews.length) return;
-
-            const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const el = entry.target;
-                        io.unobserve(el);
-                        const url = el.getAttribute('data-pdf-url');
-                        loadThumbnail(el, url);
-                    }
-                });
-            }, { rootMargin: '100px' }) : null;
-
-            previews.forEach(el => {
-                if (io) io.observe(el);
-                else loadThumbnail(el, el.getAttribute('data-pdf-url'));
-            });
-        }
-
-        async function loadThumbnail(previewEl, pdfUrl) {
-            try {
-                const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-                const page = await pdf.getPage(1);
-                const targetH = previewEl.clientHeight || 120;
-                const viewport1 = page.getViewport({ scale: 1 });
-                const s = targetH / viewport1.height;
-                const viewport = page.getViewport({ scale: s });
-
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = Math.floor(viewport.width * dpr);
-                canvas.height = Math.floor(viewport.height * dpr);
-                canvas.style.width = viewport.width + 'px';
-                canvas.style.height = viewport.height + 'px';
-
-                await page.render({
-                    canvasContext: ctx,
-                    viewport,
-                    transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null
-                }).promise;
-
-                const url = canvas.toDataURL('image/png');
-                previewEl.innerHTML = `<img class="page-thumb" alt="缩略图" src="${url}">`;
-            } catch (e) {
-                console.warn('缩略图加载失败（可能CORS）：', e);
-                previewEl.innerHTML = `<span style="color:#7a6a52;font-size:14px;">预览不可用</span>`;
-            }
-        }
-
-
 
     // 加载外部 JSON 数据
     fetch('./volume-content.json')
