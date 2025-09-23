@@ -261,8 +261,27 @@
             overflow: hidden;
             position: relative;
         }
-
-        /* PDF查看器样式（现在使用 iframe 加载 PDF.js 官方 viewer） */
+        .page-preview .thumb-skeleton {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #f3efe8 0%, #ede9e0 50%, #f3efe8 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s linear infinite;
+        }
+        .page-preview img.page-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* PDF查看器样式 */
         .pdf-viewer-container {
             display: none;
             width: 100%;
@@ -289,18 +308,16 @@
         
         .viewer-controls {
             display: flex;
-            gap: 8px;
-            align-items: center;
+            gap: 10px;
         }
         
         .viewer-btn {
-            padding: 8px 12px;
+            padding: 8px 15px;
             background: #7a6a52;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.95rem;
         }
         
         .viewer-btn:hover {
@@ -349,16 +366,55 @@
             color: #7a6a52;
         }
         
-        /* iframe 样式 */
-        .pdf-iframe {
+        .pdf-viewer {
             width: 100%;
             height: 70vh;
             border: 1px solid #e8e4dc;
             border-radius: 4px;
             background: white;
+            overflow: auto; /* 允许滚动 */
         }
         
-        /* 查看器主体：iframe + 文本侧栏 */
+        /* 新的PDF页面容器和文本层样式 */
+        #pdf-pages-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .pdf-page-wrapper {
+            position: relative;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background: #fff;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        .pdf-page-wrapper.loading canvas, .pdf-page-wrapper.loading .pdf-text-layer {
+            opacity: 0.1;
+        }
+        .pdf-text-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 1; /* 默认可见 */
+            line-height: 1;
+            transform-origin: 0 0;
+        }
+        .pdf-text-layer span {
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+        }
+        .pdf-text-layer span.highlight {
+            background-color: #ffef74;
+            border-radius: 2px;
+        }
+
+        /* 查看器主体：PDF画布 + 文本侧栏 */
         .viewer-body {
             display: grid;
             grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
@@ -437,6 +493,14 @@
                 grid-template-columns: 1fr;
             }
             .text-pane { position: static; max-height: none; }
+        }
+        
+        /* PDF.js 画布样式 */
+        .pdf-viewer canvas {
+            margin: 0 auto;
+            display: block;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background: #fff;
         }
         
         /* 加载指示器 */
@@ -690,10 +754,7 @@
                         <div class="viewer-title" id="viewer-title">PDF预览</div>
                         <div class="viewer-controls">
                             <button class="viewer-btn" onclick="downloadCurrentPDF()">
-                                <i class="fas fa-download"></i> 打开/下载PDF
-                            </button>
-                            <button class="viewer-btn" onclick="openViewerInNewTab && openViewerInNewTab()">
-                                <i class="fas fa-external-link-alt"></i> 在新标签中打开查看器
+                                <i class="fas fa-download"></i> 下载PDF
                             </button>
                             <button class="viewer-btn" onclick="backToPages()">
                                 <i class="fas fa-arrow-left"></i> 返回
@@ -707,7 +768,7 @@
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             <span class="page-info">
-                                页码: <span id="page-num">1</span> / <span id="page-count">?</span>
+                                页码: <span id="page-num">1</span> / <span id="page-count">1</span>
                             </span>
                             <button class="control-btn" onclick="nextPage()">
                                 <i class="fas fa-chevron-right"></i>
@@ -730,11 +791,17 @@
                         </div>
                     </div>
 
-                    <!-- 查看器主体：iframe + 文本侧栏 -->
+                    <!-- 新增：查看器主体 两栏布局 -->
                     <div class="viewer-body">
                         <div class="canvas-pane">
-                            <!-- 使用 PDF.js 官方 viewer（iframe） -->
-                            <iframe id="pdf-iframe" class="pdf-iframe" src="" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                            <!-- PDF加载指示器 -->
+                            <div class="loader" id="pdf-loader">
+                                <div class="loader-spinner"></div>
+                            </div>
+                            <!-- 改造后的PDF页面容器，支持多页滚动 -->
+                            <div class="pdf-viewer" id="pdf-pages-container">
+                                <!-- PDF页面在此处动态生成 -->
+                            </div>
                         </div>
                         <aside class="text-pane">
                             <div class="text-pane-title">
@@ -742,7 +809,7 @@
                                 <button class="btn-mini" id="copy-page-text" title="复制文本">复制</button>
                             </div>
                             <div class="text-pane-tools">
-                                <input id="page-text-search" class="text-input" type="text" placeholder="在本页文本内查找（实时高亮）">
+                                <input id="page-text-search" class="text-input" type="text" placeholder="在本页文本内查找（回车或输入即高亮）">
                             </div>
                             <div id="page-text" class="page-text">暂无文本</div>
                         </aside>
@@ -793,21 +860,23 @@
                         <li>响应式设计，支持移动端</li>
                         <li>全文检索功能</li>
                         <li>分类浏览系统</li>
-                        <li>PDF.js集成，支持浏览器内PDF查看（使用官方 viewer）</li>
+                        <li>PDF.js集成，支持浏览器内PDF查看</li>
                     </ul>
                     
                     <h3 style="margin-top: 30px;">使用说明</h3>
-                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献。在浏览全书时，可以查看每卷的页面列表并使用 PDF.js 官方查看器（iframe）浏览 PDF 内容。若想在单独标签页打开更完整的 viewer，可点击“在新标签中打开查看器”。</p>
+                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献。在浏览全书时，可以查看每卷的页面列表并使用PDF.js查看器浏览PDF内容。</p>
                     
                     <h3 style="margin-top: 30px; color: #c0392b;">关于PDF加载问题</h3>
-                    <p>如果 PDF 无法在浏览器中加载，但可以下载，这通常是 CORS（跨源资源共享）策略导致的。服务器需要配置 Access-Control-Allow-Origin 响应头，以允许此网页访问 PDF 资源。</p>
+                    <p>如果PDF无法在浏览器中加载，但可以下载，这通常是 CORS（跨源资源共享）策略导致的。服务器需要配置 Access-Control-Allow-Origin 响应头，以允许此网页访问PDF资源。</p>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- 下面脚本：卷标题/描述 -->
+    <!-- 引入PDF.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script>
+        // 标题与描述（保持你原来的）
         const volumeTitles = {
             1: "医心方 丹波康赖撰 卷一",
             2: "医心方 丹波康赖撰 卷二",
@@ -873,64 +942,20 @@
             30: "医心方 丹波康赖撰 卷三十 总三十卷 十二世纪抄本 东京国立博物馆藏",
         };
     </script>
-
     <script>
-        // 数据与状态
         let volumePages = {};
         let pageTexts = {};
         let pageMeta = {};
+
+        // PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // 索引（由 pageTexts 构建）
         let searchIndex = [];
-        let currentVolume = 0;
-        let currentPage = 1;
-        let currentPDFUrl = '';
-        const viewerBase = 'https://mozilla.github.io/pdf.js/web/viewer.html';
-        const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
-        let currentZoomIndex = ZOOM_LEVELS.indexOf(1.0);
-        let lastSearchQuery = "";
-        let currentPageTextRaw = "";
-
-        // 工具
-        function escapeRegExp(s) {
-            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-        function escapeHTML(s) {
-            if (typeof s !== 'string') return s;
-            return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-        }
-        function highlightMatches(text, query, exact) {
-            if (!query) return text;
-            const tokens = exact ? [query] : query.trim().split(/\s+/).filter(Boolean);
-            if (!tokens.length) return text;
-            const pattern = tokens.map(t => escapeRegExp(t)).join("|");
-            const re = new RegExp(pattern, "gi");
-            return text.replace(re, m => `<mark>${m}</mark>`);
-        }
-        function getSnippet(text, query, exact, radius = 40) {
-            if (!text) return '';
-            if (!query) return escapeHTML(text.slice(0, 100)) + (text.length > 100 ? "…" : "");
-            const tokens = exact ? [query] : query.trim().split(/\s+/).filter(Boolean);
-            if (!tokens.length) return escapeHTML(text.slice(0, 100)) + (text.length > 100 ? "…" : "");
-            const pattern = tokens.map(t => escapeRegExp(t)).join("|");
-            const re = new RegExp(pattern, "i");
-            const m = re.exec(text);
-            if (!m) return escapeHTML(text.slice(0, 100)) + (text.length > 100 ? "…" : "");
-            const idx = m.index;
-            const len = m[0].length;
-            const start = Math.max(0, idx - radius);
-            const end = Math.min(text.length, idx + len + radius);
-            let snippet = text.slice(start, end);
-            if (start > 0) snippet = "…" + snippet;
-            if (end < text.length) snippet += "…";
-            return highlightMatches(escapeHTML(snippet), query, exact);
-        }
-
-        // 构建搜索索引
         function buildSearchIndex() {
             searchIndex = [];
             for (const vol in pageTexts) {
-                if (!Object.prototype.hasOwnProperty.call(pageTexts, vol)) continue;
                 for (const pg in pageTexts[vol]) {
-                    if (!Object.prototype.hasOwnProperty.call(pageTexts[vol], pg)) continue;
                     searchIndex.push({
                         volume: Number(vol),
                         page: Number(pg),
@@ -941,11 +966,51 @@
             }
         }
 
-        // 页面切换
+        // PDF查看器状态
+        let pdfDoc = null;
+        let scale = 1.0;
+        let lastSearchQuery = "";
+        let currentPDFUrl = '';
+        let currentVolume = 0;
+        let currentPage = 0;
+        const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+        let currentZoomIndex = ZOOM_LEVELS.indexOf(1.0);
+
+        // 工具：转义与高亮
+        function escapeRegExp(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        function highlightMatches(text, query, exact) {
+            if (!query) return text;
+            const tokens = exact ? [query] : query.trim().split(/\s+/).filter(Boolean);
+            if (!tokens.length) return text;
+            const pattern = tokens.map(t => escapeRegExp(t)).join("|");
+            const re = new RegExp(pattern, "gi");
+            return text.replace(re, m => `<mark>${m}</mark>`);
+        }
+        function getSnippet(text, query, exact, radius = 40) {
+            if (!query) return text.slice(0, 100) + (text.length > 100 ? "…" : "");
+            const tokens = exact ? [query] : query.trim().split(/\s+/).filter(Boolean);
+            if (!tokens.length) return text.slice(0, 100) + (text.length > 100 ? "…" : "");
+            const pattern = tokens.map(t => escapeRegExp(t)).join("|");
+            const re = new RegExp(pattern, "i");
+            const idx = text.search(re);
+            if (idx === -1) return text.slice(0, 100) + (text.length > 100 ? "…" : "");
+            const start = Math.max(0, idx - radius);
+            const end = Math.min(text.length, idx + (exact ? query.length : tokens.length) + radius);
+            let snippet = text.slice(start, end);
+            if (start > 0) snippet = "…" + snippet;
+            if (end < text.length) snippet += "…";
+            return highlightMatches(snippet, query, exact);
+        }
+        function escapeHTML(s) {
+            return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        // 显示指定section
         function showSection(sectionName) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            const sec = document.getElementById(sectionName);
-            if (sec) sec.classList.add('active');
+            document.getElementById(sectionName).classList.add('active');
 
             document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
             const link = document.querySelector(`.nav-link[data-section="${sectionName}"]`);
@@ -958,9 +1023,8 @@
             }
         }
 
-        // 显示卷详情（生成页面卡片并绑定事件）
+        // 显示卷详情
         function showVolume(volumeNumber) {
-            currentVolume = volumeNumber;
             const volumeDetail = document.getElementById('volume-detail');
             const volumeGrid = document.querySelector('.volume-grid');
             
@@ -975,24 +1039,13 @@
                 <h3 style="margin-top: 20px;">页面列表</h3>
                 <div class="pages-grid">
                     ${pages.map(page => `
-                        <div class="page-card" data-volume="${volumeNumber}" data-page="${page.number}" data-pdf="${encodeURIComponent(page.pdfUrl || '')}">
+                        <div class="page-card" onclick="viewPDF(${volumeNumber}, ${page.number}, '${page.pdfUrl}')">
                             <span class="page-number">第 ${page.number} 页</span>
-                            <div class="page-preview">${page.description || ""}</div>
+                            <div>${page.description || ""}</div>
                         </div>
                     `).join('')}
                 </div>
             `;
-
-            // 绑定点击事件
-            const pageCards = volumeDetail.querySelectorAll('.page-card');
-            pageCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const vol = Number(this.dataset.volume);
-                    const pg = Number(this.dataset.page);
-                    const pdf = decodeURIComponent(this.dataset.pdf || '');
-                    viewPDF(vol, pg, pdf);
-                });
-            });
         }
         function backToVolumeList() {
             document.getElementById('volume-detail').style.display = 'none';
@@ -1000,34 +1053,19 @@
             document.querySelector('.volume-grid').style.display = 'grid';
         }
         
+        // 返回页面列表
         function backToPages() {
             document.getElementById('pdf-viewer').style.display = 'none';
             document.getElementById('volume-detail').style.display = 'block';
         }
-
-        // 设置 iframe viewer 的位置（页码 & 缩放）
-        function setViewerLocation(page, zoomParam) {
-            if (!currentPDFUrl) return;
-            const iframe = document.getElementById('pdf-iframe');
-            let zoomString = '';
-            if (zoomParam === 'page-width' || zoomParam === 'page-fit') {
-                zoomString = zoomParam;
-            } else {
-                const zi = (typeof zoomParam === 'number') ? zoomParam : currentZoomIndex;
-                zoomString = Math.round((ZOOM_LEVELS[zi] || 1) * 100);
-            }
-            const src = viewerBase + '?file=' + encodeURIComponent(currentPDFUrl) + '#page=' + (page || currentPage) + '&zoom=' + encodeURIComponent(zoomString);
-            iframe.src = src;
-        }
-
-        // 打开 PDF（使用官方 viewer）
+        
+        // 查看PDF + 同步右侧对应文本
         function viewPDF(volumeNumber, pageNumber, pdfUrl) {
             currentVolume = volumeNumber;
-            currentPage = pageNumber || 1;
-            currentPDFUrl = pdfUrl || '';
+            currentPage = pageNumber;
+            currentPDFUrl = pdfUrl;
             lastSearchQuery = lastSearchQuery || "";
-            currentZoomIndex = ZOOM_LEVELS.indexOf(1.0);
-
+            
             document.getElementById('volume-detail').style.display = 'none';
             const pdfViewer = document.getElementById('pdf-viewer');
             pdfViewer.style.display = 'block';
@@ -1035,77 +1073,217 @@
             document.getElementById('viewer-title').textContent =
                 `第${volumeNumber}卷 - PDF预览`;
 
-            // 更新页码信息（尝试从 volumePages 推断页数）
-            const pages = volumePages[volumeNumber] || [];
-            const maxPage = pages.length ? Math.max(...pages.map(p => p.number)) : '?';
-            document.getElementById('page-count').textContent = maxPage;
-            document.getElementById('page-num').textContent = currentPage;
-
-            // 设置 iframe 地址（会在 iframe 中加载官方 viewer）
-            setViewerLocation(currentPage);
-
-            // 显示右侧文本
-            showPageText(currentVolume, currentPage, lastSearchQuery);
+            // 加载PDF
+            loadPDF(pdfUrl, pageNumber);
         }
 
-        // 导航与缩放（通过重新设置 iframe 地址）
-        function prevPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                document.getElementById('page-num').textContent = currentPage;
-                setViewerLocation(currentPage);
-                showPageText(currentVolume, currentPage, lastSearchQuery);
+        // 加载PDF（新版本：渲染所有页面）
+        function loadPDF(url, initialPage) {
+            const container = document.getElementById('pdf-pages-container');
+            const loader = document.getElementById('pdf-loader');
+            container.innerHTML = '';
+            loader.style.display = 'flex';
+            
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                pdfDoc = pdf;
+                document.getElementById('page-count').textContent = pdf.numPages;
+                loader.style.display = 'none';
+                container.style.display = 'flex';
+
+                // Render all pages
+                renderAllPages(initialPage);
+            }).catch(function(error) {
+                console.error('加载PDF失败:', error);
+                loader.style.display = 'none';
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #c0392b;">
+                        <h3>无法加载PDF</h3>
+                        <p>可能是 CORS（跨源资源共享）限制所致。请检查服务器是否返回了 Access-Control-Allow-Origin 响应头。</p>
+                        <p>仍可点击右上角“下载PDF”按钮获取文件。</p>
+                    </div>
+                `;
+            });
+        }
+        
+        // 渲染所有页面（或重新渲染以应用新缩放）
+        function renderAllPages(initialPage = 1) {
+            if (!pdfDoc) return;
+            const container = document.getElementById('pdf-pages-container');
+            container.innerHTML = '';
+            const outputScale = window.devicePixelRatio || 1;
+
+            const renderPromises = [];
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const pageWrapper = document.createElement('div');
+                pageWrapper.className = 'pdf-page-wrapper';
+                pageWrapper.id = `page-${i}`;
+
+                const canvas = document.createElement('canvas');
+                const textLayer = document.createElement('div');
+                textLayer.className = 'pdf-text-layer';
+
+                pageWrapper.appendChild(canvas);
+                pageWrapper.appendChild(textLayer);
+                container.appendChild(pageWrapper);
+
+                const renderTaskPromise = pdfDoc.getPage(i).then(page => {
+                    const viewport = page.getViewport({ scale });
+                    
+                    canvas.width = Math.floor(viewport.width * outputScale);
+                    canvas.height = Math.floor(viewport.height * outputScale);
+                    canvas.style.width = viewport.width + "px";
+                    canvas.style.height = viewport.height + "px";
+
+                    const renderContext = {
+                        canvasContext: canvas.getContext('2d'),
+                        viewport: viewport,
+                        transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
+                    };
+
+                    // Render PDF page image
+                    const renderPromise = page.render(renderContext).promise;
+
+                    // Get text content and render text layer
+                    const textPromise = page.getTextContent().then(textContent => {
+                        const textContentItems = textContent.items;
+                        let textLayerHtml = '';
+                        textContentItems.forEach(item => {
+                            const { str, transform } = item;
+                            const [fontScale, , , , x, y] = transform;
+                            textLayerHtml += `<span style="font-size:${fontScale}px; transform: matrix(1,0,0,1,${x},${y});">${escapeHTML(str)}</span>`;
+                        });
+                        textLayer.innerHTML = textLayerHtml;
+                        textLayer.style.width = viewport.width + "px";
+                        textLayer.style.height = viewport.height + "px";
+                        textLayer.style.transform = `scale(${1 / outputScale})`; // Scale text layer back
+                        
+                        // Update the text pane when the initial page is loaded
+                        if (i === initialPage) {
+                            showPageText(currentVolume, initialPage, lastSearchQuery);
+                            highlightTextInViewer(lastSearchQuery);
+                        }
+                    });
+                    return Promise.all([renderPromise, textPromise]);
+                });
+                renderPromises.push(renderTaskPromise);
+            }
+
+            Promise.all(renderPromises).then(() => {
+                // Scroll to the initial page after all pages are rendered
+                const pageElement = document.getElementById(`page-${initialPage}`);
+                if (pageElement) {
+                    pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        }
+        
+        // 导航到指定页面
+        function navigateToPage(pageNum) {
+            const pageElement = document.getElementById(`page-${pageNum}`);
+            if (pageElement) {
+                pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // 更新页码显示
+                document.getElementById('page-num').textContent = pageNum;
+                // 更新右侧文本
+                showPageText(currentVolume, pageNum, lastSearchQuery);
             }
         }
+
+        // 绑定滚动事件，动态更新页码
+        document.getElementById('pdf-pages-container').addEventListener('scroll', () => {
+            const container = document.getElementById('pdf-pages-container');
+            const pageElements = container.querySelectorAll('.pdf-page-wrapper');
+            let visiblePage = 1;
+            for (let i = 0; i < pageElements.length; i++) {
+                const rect = pageElements[i].getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                // 如果页面顶部进入容器视口
+                if (rect.top >= containerRect.top && rect.top <= containerRect.bottom) {
+                    visiblePage = i + 1;
+                    break;
+                }
+            }
+            document.getElementById('page-num').textContent = visiblePage;
+            showPageText(currentVolume, visiblePage, lastSearchQuery);
+        });
+
+        function prevPage() {
+            const pageNum = parseInt(document.getElementById('page-num').textContent);
+            if (pageNum > 1) {
+                navigateToPage(pageNum - 1);
+            }
+        }
+        
         function nextPage() {
-            const pages = volumePages[currentVolume] || [];
-            const maxPage = pages.length ? Math.max(...pages.map(p => p.number)) : 9999;
-            if (currentPage < maxPage) {
-                currentPage++;
-                document.getElementById('page-num').textContent = currentPage;
-                setViewerLocation(currentPage);
-                showPageText(currentVolume, currentPage, lastSearchQuery);
+            const pageNum = parseInt(document.getElementById('page-num').textContent);
+            if (pageNum < pdfDoc.numPages) {
+                navigateToPage(pageNum + 1);
             }
         }
 
         function zoomIn() {
             if (currentZoomIndex < ZOOM_LEVELS.length - 1) {
                 currentZoomIndex++;
-                setViewerLocation(currentPage);
+                scale = ZOOM_LEVELS[currentZoomIndex];
+                renderAllPages(parseInt(document.getElementById('page-num').textContent));
             }
         }
+        
         function zoomOut() {
             if (currentZoomIndex > 0) {
                 currentZoomIndex--;
-                setViewerLocation(currentPage);
+                scale = ZOOM_LEVELS[currentZoomIndex];
+                renderAllPages(parseInt(document.getElementById('page-num').textContent));
             }
         }
+        
         function fitWidth() {
-            setViewerLocation(currentPage, 'page-width');
+            const container = document.getElementById('pdf-pages-container');
+            pdfDoc.getPage(1).then(function(page) {
+                const viewport = page.getViewport({ scale: 1 });
+                const containerWidth = container.clientWidth - 20; // 留出一点边距
+                scale = containerWidth / viewport.width;
+                // 找到最接近的预设缩放级别
+                const closestZoom = ZOOM_LEVELS.reduce((prev, curr) => (Math.abs(curr - scale) < Math.abs(prev - scale) ? curr : prev));
+                currentZoomIndex = ZOOM_LEVELS.indexOf(closestZoom);
+                scale = closestZoom;
+                renderAllPages(parseInt(document.getElementById('page-num').textContent));
+            });
         }
+
         function fitPage() {
-            setViewerLocation(currentPage, 'page-fit');
+            const container = document.getElementById('pdf-pages-container');
+            pdfDoc.getPage(1).then(function(page) {
+                const viewport = page.getViewport({ scale: 1 });
+                const containerWidth = container.clientWidth - 20;
+                const containerHeight = container.clientHeight - 20;
+                const scaleX = containerWidth / viewport.width;
+                const scaleY = containerHeight / viewport.height;
+                scale = Math.min(scaleX, scaleY);
+                // 找到最接近的预设缩放级别
+                const closestZoom = ZOOM_LEVELS.reduce((prev, curr) => (Math.abs(curr - scale) < Math.abs(prev - scale) ? curr : prev));
+                currentZoomIndex = ZOOM_LEVELS.indexOf(closestZoom);
+                scale = closestZoom;
+                renderAllPages(parseInt(document.getElementById('page-num').textContent));
+            });
         }
-
-        // 在新标签页打开官方 viewer（同样带 file & page & zoom）
-        function openViewerInNewTab() {
-            if (!currentPDFUrl) { alert('当前没有打开的PDF'); return; }
-            const zoom = Math.round((ZOOM_LEVELS[currentZoomIndex] || 1) * 100);
-            const url = viewerBase + '?file=' + encodeURIComponent(currentPDFUrl) + '#page=' + currentPage + '&zoom=' + zoom;
-            window.open(url, '_blank');
-        }
-
-        // 打开/下载 PDF（直接打开 PDF 链接）
+        
+        // 下载当前PDF
         function downloadCurrentPDF() {
-            if (!currentPDFUrl) { alert('没有可下载的PDF'); return; }
-            window.open(currentPDFUrl, '_blank');
+            const link = document.createElement('a');
+            link.href = currentPDFUrl;
+            link.download = `医心方_第${currentVolume}卷.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        // 右侧文本显示与操作
+        // 显示右侧对应页文本 + 高亮
         function showPageText(volume, page, highlightQuery = "") {
             const raw = (pageTexts[volume] && pageTexts[volume][page]) || "暂无文本";
             currentPageTextRaw = raw;
-            const html = highlightQuery ? highlightMatches(escapeHTML(raw), highlightQuery, false) : escapeHTML(raw);
+            const html = highlightMatches(escapeHTML(raw), highlightQuery, true);
             document.getElementById('page-text').innerHTML = html;
             document.getElementById('page-text-search').value = highlightQuery || "";
         }
@@ -1123,17 +1301,49 @@
                 const old = btn.textContent;
                 btn.textContent = '已复制';
                 setTimeout(() => btn.textContent = old, 1200);
-            }).catch(() => alert('复制失败'));
+            }).catch(() => {});
         }
 
-        // 获取 pdf 链接（由 volumePages 构成）
+        // 高亮PDF查看器中的文本
+        function highlightTextInViewer(query) {
+            const queryClean = query.trim();
+            if (!queryClean) return;
+
+            const textLayers = document.querySelectorAll('.pdf-text-layer');
+            textLayers.forEach(layer => {
+                const children = Array.from(layer.children);
+                // 清除旧高亮
+                children.forEach(span => {
+                    const text = span.textContent;
+                    const normalizedText = text.replace(/\s+/g, '');
+                    const newText = highlightMatches(normalizedText, queryClean, true);
+                    span.innerHTML = newText;
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('page-text-search').addEventListener('input', updatePageTextHighlightFromInput);
+            document.getElementById('copy-page-text').addEventListener('click', copyPageText);
+        });
+
+        // 搜索（首页）
+        function performSearch() {
+            const query = document.getElementById('quick-search-input').value || "";
+            if (!query.trim()) return;
+            showSection('search');
+            document.getElementById('search-input').value = query.trim();
+            performDetailedSearch();
+        }
+
+        // 仅供获取 url
         function getPdfUrl(volume, page) {
             const arr = volumePages[volume] || [];
             const item = arr.find(p => p.number === page);
             return item ? item.pdfUrl : '';
         }
 
-        // 搜索打开结果
+        // 打开搜索结果
         function openResult(volume, page, query) {
             lastSearchQuery = query || "";
             showSection('browse');
@@ -1146,16 +1356,7 @@
             }
         }
 
-        // 首页快捷搜索
-        function performSearch() {
-            const query = document.getElementById('quick-search-input').value || "";
-            if (!query.trim()) return;
-            showSection('search');
-            document.getElementById('search-input').value = query.trim();
-            performDetailedSearch();
-        }
-
-        // 详细搜索（基于 pageTexts）
+        // 详细搜索
         function performDetailedSearch() {
             const input = document.getElementById('search-input');
             const query = (input.value || "").trim();
@@ -1171,7 +1372,6 @@
 
             const tokens = exact ? [query] : query.split(/\s+/).filter(Boolean);
             const matchOne = (text) => {
-                if (!text) return false;
                 const lowerText = text.toLowerCase();
                 if (exact) return lowerText.includes(query.toLowerCase());
                 return tokens.every(t => lowerText.includes(t.toLowerCase()));
@@ -1183,16 +1383,11 @@
                 return matchOne(r.text);
             });
 
-            function earliestIndex(text, toks) {
-                const lower = (text || '').toLowerCase();
-                let best = Infinity;
-                toks.forEach(t => {
-                    const idx = lower.indexOf(t.toLowerCase());
-                    if (idx !== -1 && idx < best) best = idx;
-                });
-                return best === Infinity ? 1e9 : best;
-            }
-            results.sort((a, b) => earliestIndex(a.text, tokens) - earliestIndex(b.text, tokens));
+            results = results.sort((a, b) => {
+                const pa = a.text.toLowerCase().indexOf((exact ? query : tokens).toLowerCase());
+                const pb = b.text.toLowerCase().indexOf((exact ? query : tokens).toLowerCase());
+                return (pa === -1 ? Infinity : pa) - (pb === -1 ? Infinity : pb);
+            });
 
             if (!results.length) {
                 resultsDiv.innerHTML = `<p>未找到与“${escapeHTML(query)}”相关的结果。</p>`;
@@ -1211,7 +1406,7 @@
                                 <span>分类：${(r.tags && r.tags.length) ? r.tags.join('、') : '—'}</span>
                             </div>
                             <div class="entry-actions">
-                                <button class="btn-link" onclick="openResult(${r.volume}, ${r.page}, '${(query || '').replace(/'/g, "\\'")}')">打开此页</button>
+                                <button class="btn-link" onclick="openResult(${r.volume}, ${r.page}, '${query.replace(/'/g, "\\'")}')">打开此页</button>
                             </div>
                         </div>
                     `;
@@ -1220,31 +1415,18 @@
             resultsDiv.innerHTML = html;
         }
 
-        // 事件绑定
-        document.addEventListener('DOMContentLoaded', () => {
-            const pageTextInput = document.getElementById('page-text-search');
-            if (pageTextInput) pageTextInput.addEventListener('input', updatePageTextHighlightFromInput);
-            const copyBtn = document.getElementById('copy-page-text');
-            if (copyBtn) copyBtn.addEventListener('click', copyPageText);
+    // 加载外部 JSON 数据
+    fetch('./volume-content.json')
+        .then(response => response.json())
+        .then(data => {
+            volumePages = data.volumePages || {};
+            pageTexts = data.pageTexts || {};
+            pageMeta = data.pageMeta || {};
+            buildSearchIndex();
+        })
+        .catch(err => {
+            console.error('无法加载 JSON 数据:', err);
         });
-
-        // 加载外部 JSON 数据（结构示例：{ "volumePages": { "1": [ {"number":1,"pdfUrl":"...","description":"..."} ] }, "pageTexts": { "1": { "1": "..." } }, "pageMeta": { } } ）
-        fetch('./volume-content.json')
-            .then(response => response.json())
-            .then(data => {
-                volumePages = data.volumePages || {};
-                pageTexts = data.pageTexts || {};
-                pageMeta = data.pageMeta || {};
-                buildSearchIndex();
-            })
-            .catch(err => {
-                console.warn('无法加载 JSON 数据:', err);
-                // 提供最小示例数据以便测试（请替换为真实 volume-content.json）
-                volumePages = { 1: [{ number: 1, pdfUrl: './samples/vol1.pdf', description: '示例：卷1 第1页' }, { number: 2, pdfUrl: './samples/vol1.pdf', description: '示例：卷1 第2页' }] };
-                pageTexts = { 1: { 1: '这是卷1第1页的示例文本。', 2: '这是卷1第2页的示例文本。' } };
-                pageMeta = {};
-                buildSearchIndex();
-            });
     </script>
 </body>
 </html>
