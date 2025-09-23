@@ -511,6 +511,26 @@
         .entry-actions { margin-top: 8px; }
         .btn-link { background: #8a3324; color: white; padding: 6px 10px; border-radius: 4px; display: inline-block; cursor: pointer; border: none; }
         .btn-link:hover { background: #6d281c; }
+        
+        /* 图片查看器样式 */
+        .image-viewer {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .image-container {
+            max-width: 100%;
+            overflow: auto;
+            margin-bottom: 15px;
+        }
+        
+        .viewer-image {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e8e4dc;
+        }
     </style>
 </head>
 <body>
@@ -724,6 +744,7 @@
                     <!-- 卷详情内容由 JS 动态生成 -->
                 </div>
                 
+                <!-- PDF查看器 -->
                 <div class="pdf-viewer-container" id="pdf-viewer">
                     <div class="viewer-header">
                         <div class="viewer-title" id="viewer-title">PDF预览</div>
@@ -794,6 +815,65 @@
                         </aside>
                     </div>
                 </div>
+                
+                <!-- 图片查看器（作为PDF备用） -->
+                <div class="image-viewer" id="image-viewer">
+                    <div class="viewer-header">
+                        <div class="viewer-title" id="image-viewer-title">图片预览</div>
+                        <div class="viewer-controls">
+                            <button class="viewer-btn" onclick="downloadCurrentImage()">
+                                <i class="fas fa-download"></i> 下载图片
+                            </button>
+                            <button class="viewer-btn" onclick="backToPages()">
+                                <i class="fas fa-arrow-left"></i> 返回
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="image-container">
+                        <img id="viewer-image" class="viewer-image" src="" alt="页面图片">
+                    </div>
+                    
+                    <div class="pdf-controls">
+                        <div class="page-navigation">
+                            <button class="control-btn" id="image-prev-btn" onclick="prevImagePage()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            <div class="page-input-group">
+                                <input type="number" id="image-page-input" class="page-input" min="1">
+                                <span class="page-info"> / <span id="image-page-count">?</span></span>
+                            </div>
+                            
+                            <button class="control-btn" id="image-next-btn" onclick="nextImagePage()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="zoom-controls">
+                            <button class="control-btn" onclick="zoomImageOut()">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button class="control-btn" onclick="zoomImageIn()">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button class="control-btn" onclick="resetImageZoom()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <aside class="text-pane">
+                        <div class="text-pane-title">
+                            <span>第<span id="current-image-page-text">1</span>页文本</span>
+                            <button class="btn-mini" id="copy-image-page-text" title="复制文本">复制</button>
+                        </div>
+                        <div class="text-pane-tools">
+                            <input id="image-page-text-search" class="text-input" type="text" placeholder="在本页文本内查找">
+                        </div>
+                        <div id="image-page-text" class="page-text">暂无文本</div>
+                    </aside>
+                </div>
             </section>
             
             <!-- 搜索页面 -->
@@ -838,14 +918,14 @@
                         <li>响应式设计，支持移动端</li>
                         <li>全文检索功能</li>
                         <li>分类浏览系统</li>
-                        <li>PDF.js集成，按需加载单页，节省资源</li>
+                        <li>PDF和图片双模式查看器，适应不同资源类型</li>
                     </ul>
                     
                     <h3 style="margin-top: 30px;">使用说明</h3>
-                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献。PDF查看器采用按需加载，每次只加载当前页面，翻页时自动更新，减少服务器和浏览器压力。</p>
+                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献。平台同时支持PDF和图片查看，确保在不同环境下都能正常显示文献内容。</p>
                     
                     <h3 style="margin-top: 30px; color: #c0392b;">关于PDF加载问题</h3>
-                    <p>如果 PDF 无法在浏览器中加载，可能是 CORS（跨源资源共享）策略导致的。服务器需要配置 Access-Control-Allow-Origin 响应头。</p>
+                    <p>如果PDF无法在浏览器中加载，可能是CORS（跨源资源共享）策略导致的。本平台提供了图片查看器作为备选方案，确保文献内容可以正常显示。</p>
                 </div>
             </section>
         </main>
@@ -874,10 +954,13 @@
         let currentPage = 1;
         let totalPages = 1;
         let currentPDFUrl = '';
+        let currentImageUrl = '';
         let currentZoom = 'auto';
+        let imageZoom = 1;
         let isLoading = false;
         let lastSearchQuery = "";
         let currentPageTextRaw = "";
+        let currentVolumePages = [];
 
         // PDF.js viewer 基础URL（使用Mozilla的在线版本或自己部署的版本）
         const viewerBase = 'https://mozilla.github.io/pdf.js/web/viewer.html';
@@ -952,6 +1035,7 @@
             if (sectionName !== 'browse') {
                 document.getElementById('volume-detail').style.display = 'none';
                 document.getElementById('pdf-viewer').style.display = 'none';
+                document.getElementById('image-viewer').style.display = 'none';
                 document.querySelector('.volume-grid').style.display = 'grid';
             }
         }
@@ -966,6 +1050,8 @@
             volumeDetail.style.display = 'block';
 
             const pages = volumePages[volumeNumber] || [];
+            currentVolumePages = pages;
+            
             volumeDetail.innerHTML = `
                 <button class="btn back-btn" onclick="backToVolumeList()">返回卷目列表</button>
                 <h2>第${volumeNumber}卷 - ${volumeTitles[volumeNumber] || ""}</h2>
@@ -973,7 +1059,9 @@
                 <h3 style="margin-top: 20px;">页面列表</h3>
                 <div class="pages-grid">
                     ${pages.map(page => `
-                        <div class="page-card" data-volume="${volumeNumber}" data-page="${page.number}" data-pdf="${encodeURIComponent(page.pdfUrl || '')}">
+                        <div class="page-card" data-volume="${volumeNumber}" data-page="${page.number}" 
+                             data-pdf="${encodeURIComponent(page.pdfUrl || '')}" 
+                             data-image="${encodeURIComponent(page.imageUrl || '')}">
                             <span class="page-number">第 ${page.number} 页</span>
                             <div class="page-preview">${page.description || ""}</div>
                         </div>
@@ -988,7 +1076,16 @@
                     const vol = Number(this.dataset.volume);
                     const pg = Number(this.dataset.page);
                     const pdf = decodeURIComponent(this.dataset.pdf || '');
-                    viewPDF(vol, pg, pdf);
+                    const image = decodeURIComponent(this.dataset.image || '');
+                    
+                    // 优先尝试PDF，如果PDF不可用则使用图片
+                    if (pdf) {
+                        viewPDF(vol, pg, pdf);
+                    } else if (image) {
+                        viewImage(vol, pg, image);
+                    } else {
+                        alert('该页面暂无可用资源');
+                    }
                 });
             });
         }
@@ -996,25 +1093,27 @@
         function backToVolumeList() {
             document.getElementById('volume-detail').style.display = 'none';
             document.getElementById('pdf-viewer').style.display = 'none';
+            document.getElementById('image-viewer').style.display = 'none';
             document.querySelector('.volume-grid').style.display = 'grid';
         }
         
         function backToPages() {
             document.getElementById('pdf-viewer').style.display = 'none';
+            document.getElementById('image-viewer').style.display = 'none';
             document.getElementById('volume-detail').style.display = 'block';
         }
 
         // 打开PDF（初始化）
         function viewPDF(volumeNumber, pageNumber, pdfUrl) {
             currentVolume = volumeNumber;
-            currentPage = pageNumber || 1;
-            currentPDFUrl = pdfUrl || '';
+            currentPage = pageNumber;
+            currentPDFUrl = pdfUrl;
             
             // 计算总页数
-            const pages = volumePages[volumeNumber] || [];
-            totalPages = pages.length ? Math.max(...pages.map(p => p.number)) : 1;
+            totalPages = currentVolumePages.length;
             
             document.getElementById('volume-detail').style.display = 'none';
+            document.getElementById('image-viewer').style.display = 'none';
             const pdfViewer = document.getElementById('pdf-viewer');
             pdfViewer.style.display = 'block';
             
@@ -1066,10 +1165,82 @@
             iframe.onerror = function() {
                 isLoading = false;
                 loadingOverlay.classList.remove('active');
-                alert('PDF加载失败，请检查文件路径或CORS设置');
+                console.error('PDF加载失败，尝试使用图片模式');
+                
+                // 尝试查找对应的图片URL
+                const currentPageInfo = currentVolumePages.find(p => p.number === currentPage);
+                if (currentPageInfo && currentPageInfo.imageUrl) {
+                    viewImage(currentVolume, currentPage, currentPageInfo.imageUrl);
+                } else {
+                    alert('PDF加载失败，请检查文件路径或CORS设置');
+                }
             };
             
             iframe.src = viewerUrl;
+        }
+
+        // 打开图片查看器
+        function viewImage(volumeNumber, pageNumber, imageUrl) {
+            currentVolume = volumeNumber;
+            currentPage = pageNumber;
+            currentImageUrl = imageUrl;
+            
+            // 计算总页数
+            totalPages = currentVolumePages.length;
+            
+            document.getElementById('volume-detail').style.display = 'none';
+            document.getElementById('pdf-viewer').style.display = 'none';
+            const imageViewer = document.getElementById('image-viewer');
+            imageViewer.style.display = 'block';
+            
+            document.getElementById('image-viewer-title').textContent = `第${volumeNumber}卷 - 图片预览`;
+            document.getElementById('image-page-count').textContent = totalPages;
+            
+            // 加载图片
+            loadImagePage(currentPage);
+            
+            // 更新页面输入框
+            const pageInput = document.getElementById('image-page-input');
+            pageInput.value = currentPage;
+            pageInput.max = totalPages;
+            
+            // 更新按钮状态
+            updateImageNavigationButtons();
+            
+            // 重置缩放
+            imageZoom = 1;
+            updateImageZoom();
+        }
+
+        // 加载图片页面
+        function loadImagePage(pageNum) {
+            currentPage = pageNum;
+            
+            // 查找当前页面的图片URL
+            const currentPageInfo = currentVolumePages.find(p => p.number === currentPage);
+            if (!currentPageInfo) return;
+            
+            const imageUrl = currentPageInfo.imageUrl || currentPageInfo.pdfUrl?.replace('.pdf', '.jpg');
+            if (!imageUrl) return;
+            
+            const img = document.getElementById('viewer-image');
+            img.src = imageUrl;
+            img.onload = function() {
+                // 更新文本显示
+                showImagePageText(currentVolume, currentPage, lastSearchQuery);
+                
+                // 更新页码显示
+                document.getElementById('image-page-input').value = currentPage;
+                document.getElementById('current-image-page-text').textContent = currentPage;
+                
+                // 更新按钮状态
+                updateImageNavigationButtons();
+            };
+            
+            img.onerror = function() {
+                console.error('图片加载失败');
+                alert('图片加载失败，请检查文件路径');
+            };
         }
 
         // 更新导航按钮状态
@@ -1080,17 +1251,55 @@
             prevBtn.disabled = currentPage <= 1;
             nextBtn.disabled = currentPage >= totalPages;
         }
+        
+        function updateImageNavigationButtons() {
+            const prevBtn = document.getElementById('image-prev-btn');
+            const nextBtn = document.getElementById('image-next-btn');
+            
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+        }
 
         // 翻页功能
         function prevPage() {
             if (currentPage > 1 && !isLoading) {
-                loadPDFPage(currentPage - 1);
+                // 查找上一页的信息
+                const prevPageInfo = currentVolumePages.find(p => p.number === currentPage - 1);
+                if (prevPageInfo && prevPageInfo.pdfUrl) {
+                    viewPDF(currentVolume, currentPage - 1, prevPageInfo.pdfUrl);
+                }
             }
         }
         
         function nextPage() {
             if (currentPage < totalPages && !isLoading) {
-                loadPDFPage(currentPage + 1);
+                // 查找下一页的信息
+                const nextPageInfo = currentVolumePages.find(p => p.number === currentPage + 1);
+                if (nextPageInfo && nextPageInfo.pdfUrl) {
+                    viewPDF(currentVolume, currentPage + 1, nextPageInfo.pdfUrl);
+                }
+            }
+        }
+        
+        function prevImagePage() {
+            if (currentPage > 1) {
+                // 查找上一页的信息
+                const prevPageInfo = currentVolumePages.find(p => p.number === currentPage - 1);
+                if (prevPageInfo && (prevPageInfo.imageUrl || prevPageInfo.pdfUrl)) {
+                    const imageUrl = prevPageInfo.imageUrl || prevPageInfo.pdfUrl.replace('.pdf', '.jpg');
+                    viewImage(currentVolume, currentPage - 1, imageUrl);
+                }
+            }
+        }
+        
+        function nextImagePage() {
+            if (currentPage < totalPages) {
+                // 查找下一页的信息
+                const nextPageInfo = currentVolumePages.find(p => p.number === currentPage + 1);
+                if (nextPageInfo && (nextPageInfo.imageUrl || nextPageInfo.pdfUrl)) {
+                    const imageUrl = nextPageInfo.imageUrl || nextPageInfo.pdfUrl.replace('.pdf', '.jpg');
+                    viewImage(currentVolume, currentPage + 1, imageUrl);
+                }
             }
         }
         
@@ -1098,7 +1307,23 @@
         function goToPage(pageNum) {
             pageNum = parseInt(pageNum);
             if (pageNum >= 1 && pageNum <= totalPages && pageNum !== currentPage && !isLoading) {
-                loadPDFPage(pageNum);
+                // 查找指定页的信息
+                const pageInfo = currentVolumePages.find(p => p.number === pageNum);
+                if (pageInfo && pageInfo.pdfUrl) {
+                    viewPDF(currentVolume, pageNum, pageInfo.pdfUrl);
+                }
+            }
+        }
+        
+        function goToImagePage(pageNum) {
+            pageNum = parseInt(pageNum);
+            if (pageNum >= 1 && pageNum <= totalPages && pageNum !== currentPage) {
+                // 查找指定页的信息
+                const pageInfo = currentVolumePages.find(p => p.number === pageNum);
+                if (pageInfo && (pageInfo.imageUrl || pageInfo.pdfUrl)) {
+                    const imageUrl = pageInfo.imageUrl || pageInfo.pdfUrl.replace('.pdf', '.jpg');
+                    viewImage(currentVolume, pageNum, imageUrl);
+                }
             }
         }
 
@@ -1127,6 +1352,27 @@
             // 重新加载当前页面，应用新的缩放设置
             loadPDFPage(currentPage);
         }
+        
+        function zoomImageIn() {
+            imageZoom += 0.2;
+            updateImageZoom();
+        }
+        
+        function zoomImageOut() {
+            imageZoom = Math.max(0.2, imageZoom - 0.2);
+            updateImageZoom();
+        }
+        
+        function resetImageZoom() {
+            imageZoom = 1;
+            updateImageZoom();
+        }
+        
+        function updateImageZoom() {
+            const img = document.getElementById('viewer-image');
+            img.style.transform = `scale(${imageZoom})`;
+            img.style.transformOrigin = 'top left';
+        }
 
         // 在新标签页打开
         function openViewerInNewTab() {
@@ -1146,6 +1392,15 @@
             }
             window.open(currentPDFUrl, '_blank');
         }
+        
+        // 下载图片
+        function downloadCurrentImage() {
+            if (!currentImageUrl) {
+                alert('没有可下载的图片');
+                return;
+            }
+            window.open(currentImageUrl, '_blank');
+        }
 
         // 显示页面文本
         function showPageText(volume, page, highlightQuery = "") {
@@ -1156,11 +1411,25 @@
             document.getElementById('page-text-search').value = highlightQuery || "";
         }
         
+        function showImagePageText(volume, page, highlightQuery = "") {
+            const raw = (pageTexts[volume] && pageTexts[volume][page]) || "暂无文本";
+            currentPageTextRaw = raw;
+            const html = highlightQuery ? highlightMatches(escapeHTML(raw), highlightQuery, false) : escapeHTML(raw);
+            document.getElementById('image-page-text').innerHTML = html;
+            document.getElementById('image-page-text-search').value = highlightQuery || "";
+        }
+        
         // 文本搜索高亮
         function updatePageTextHighlightFromInput() {
             const q = document.getElementById('page-text-search').value.trim();
             const html = q ? highlightMatches(escapeHTML(currentPageTextRaw), q, false) : escapeHTML(currentPageTextRaw);
             document.getElementById('page-text').innerHTML = html;
+        }
+        
+        function updateImagePageTextHighlightFromInput() {
+            const q = document.getElementById('image-page-text-search').value.trim();
+            const html = q ? highlightMatches(escapeHTML(currentPageTextRaw), q, false) : escapeHTML(currentPageTextRaw);
+            document.getElementById('image-page-text').innerHTML = html;
         }
 
         // 复制文本
@@ -1168,6 +1437,16 @@
             if (!currentPageTextRaw) return;
             navigator.clipboard?.writeText(currentPageTextRaw).then(() => {
                 const btn = document.getElementById('copy-page-text');
+                const old = btn.textContent;
+                btn.textContent = '已复制';
+                setTimeout(() => btn.textContent = old, 1200);
+            }).catch(() => alert('复制失败'));
+        }
+        
+        function copyImagePageText() {
+            if (!currentPageTextRaw) return;
+            navigator.clipboard?.writeText(currentPageTextRaw).then(() => {
+                const btn = document.getElementById('copy-image-page-text');
                 const old = btn.textContent;
                 btn.textContent = '已复制';
                 setTimeout(() => btn.textContent = old, 1200);
@@ -1190,7 +1469,14 @@
             if (url) {
                 viewPDF(volume, page, url);
             } else {
-                alert('未找到该页的PDF地址。');
+                // 尝试使用图片
+                const arr = volumePages[volume] || [];
+                const item = arr.find(p => p.number === page);
+                if (item && item.imageUrl) {
+                    viewImage(volume, page, item.imageUrl);
+                } else {
+                    alert('未找到该页的资源地址。');
+                }
             }
         }
 
@@ -1265,10 +1551,20 @@
                 pageTextInput.addEventListener('input', updatePageTextHighlightFromInput);
             }
             
+            const imagePageTextInput = document.getElementById('image-page-text-search');
+            if (imagePageTextInput) {
+                imagePageTextInput.addEventListener('input', updateImagePageTextHighlightFromInput);
+            }
+            
             // 复制按钮
             const copyBtn = document.getElementById('copy-page-text');
             if (copyBtn) {
                 copyBtn.addEventListener('click', copyPageText);
+            }
+            
+            const copyImageBtn = document.getElementById('copy-image-page-text');
+            if (copyImageBtn) {
+                copyImageBtn.addEventListener('click', copyImagePageText);
             }
             
             // 页码输入框
@@ -1281,6 +1577,19 @@
                 pageInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         goToPage(this.value);
+                    }
+                });
+            }
+            
+            const imagePageInput = document.getElementById('image-page-input');
+            if (imagePageInput) {
+                imagePageInput.addEventListener('change', function() {
+                    goToImagePage(this.value);
+                });
+                
+                imagePageInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        goToImagePage(this.value);
                     }
                 });
             }
@@ -1300,9 +1609,9 @@
                 // 示例数据
                 volumePages = {
                     1: [
-                        { number: 1, pdfUrl: './samples/vol1.pdf', description: '示例：卷1 第1页' },
-                        { number: 2, pdfUrl: './samples/vol1.pdf', description: '示例：卷1 第2页' },
-                        { number: 3, pdfUrl: './samples/vol1.pdf', description: '示例：卷1 第3页' }
+                        { number: 1, pdfUrl: './samples/vol1-page1.pdf', imageUrl: './samples/vol1-page1.jpg', description: '示例：卷1 第1页' },
+                        { number: 2, pdfUrl: './samples/vol1-page2.pdf', imageUrl: './samples/vol1-page2.jpg', description: '示例：卷1 第2页' },
+                        { number: 3, pdfUrl: './samples/vol1-page3.pdf', imageUrl: './samples/vol1-page3.jpg', description: '示例：卷1 第3页' }
                     ]
                 };
                 pageTexts = {
