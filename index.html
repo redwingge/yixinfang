@@ -225,9 +225,10 @@
             gap: 15px;
             margin: 20px 0;
         }
+        
         .page-card {
             background: white;
-            border: none;                     /* 去掉边框 */
+            border: 1px solid #e8e4dc;
             border-radius: 6px;
             padding: 15px;
             text-align: center;
@@ -236,17 +237,31 @@
         }
         
         .page-card:hover {
-            border-color: none;               /* 悬停也去掉边框 */
-            box-shadow: none;                 /* 去掉阴影 */
+            border-color: #8a3324;
+            box-shadow: 0 5px 15px rgba(138, 51, 36, 0.1);
         }
         
         .page-number {
-            font-size: 1rem;                  /* 字体更小 */
+            display: block;
+            font-size: 1.2rem;
+            color: #8a3324;
+            margin-bottom: 8px;
         }
         
         .page-preview {
-            font-size: 1.5rem;                /* 预览大数字或符号更小 */
+            height: 120px;
+            background: #f3efe8;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7a6a52;
+            font-size: 2rem;
+            overflow: hidden;
+            position: relative;
         }
+
         /* PDF查看器样式 */
         .pdf-viewer-container {
             display: none;
