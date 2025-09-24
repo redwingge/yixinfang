@@ -1406,7 +1406,9 @@
         function showPageText(volume, page, highlightQuery = "") {
             const raw = (pageTexts[volume] && pageTexts[volume][page]) || "暂无文本";
             currentPageTextRaw = raw;
-            const html = highlightQuery ? highlightMatches(escapeHTML(raw), highlightQuery, false) : escapeHTML(raw);
+            const html = highlightQuery 
+                ? highlightMatches(raw, highlightQuery, false) 
+                : raw;
             document.getElementById('page-text').innerHTML = html;
             document.getElementById('page-text-search').value = highlightQuery || "";
         }
@@ -1414,7 +1416,9 @@
         function showImagePageText(volume, page, highlightQuery = "") {
             const raw = (pageTexts[volume] && pageTexts[volume][page]) || "暂无文本";
             currentPageTextRaw = raw;
-            const html = highlightQuery ? highlightMatches(escapeHTML(raw), highlightQuery, false) : escapeHTML(raw);
+            const html = highlightQuery 
+                ? highlightMatches(raw, highlightQuery, false) 
+                : raw;
             document.getElementById('image-page-text').innerHTML = html;
             document.getElementById('image-page-text-search').value = highlightQuery || "";
         }
@@ -1596,7 +1600,7 @@
         });
 
         // 加载数据
-        fetch('./volume-content.json')
+        fetch('./volume-content_annotation.json')
             .then(response => response.json())
             .then(data => {
                 volumePages = data.volumePages || {};
