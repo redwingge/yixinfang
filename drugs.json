@@ -1,0 +1,17 @@
+[
+  {
+    "name": "麻黄",
+    "pinyin": "ma huang",
+    "effect": "发汗解表，宣肺平喘，利水消肿",
+    "properties": {
+      "nature": "辛、微苦，温",
+      "meridian": "归肺、膀胱经",
+      "category": "解表药"
+    },
+    "usage": "煎服，2-9g。发汗解表宜生用，止咳平喘多炙用",
+    "contraindications": "表虚自汗、阴虚盗汗及肺肾虚喘者慎用",
+    "prescriptions": ["麻黄汤", "麻杏石甘汤", "小青龙汤"],
+    "description": "麻黄为麻黄科植物草麻黄、中麻黄或木贼麻黄的干燥草质茎...",
+    "references": "《神农本草经》、《伤寒论》"
+  }
+]
