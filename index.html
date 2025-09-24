@@ -6,6 +6,8 @@
     <title>医心方数字文献库</title>
     <!-- 霞鹜文楷（开源楷体） -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css">
+    <!-- 备用：Noto Serif SC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC&display=swap" rel="stylesheet">
     <!-- DOMPurify（用于净化允许的 HTML） -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -456,7 +458,7 @@
         .loading-overlay.active {
             display: flex;
         }
-        
+
         .loader-spinner {
             width: 40px;
             height: 40px;
@@ -541,8 +543,101 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             border: 1px solid #e8e4dc;
         }
+        .tooltip {
+        cursor: help;
+        font-weight: normal;          /* 不再强制加粗 */
+        color: inherit;               /* 跟随正文颜色 */
+        border-bottom: 1px dashed #8a3324;  /* 用红棕色虚线下划线表示可悬停 */
+        }
+
+        .tooltip-float {
+        position: absolute;
+        z-index: 99999;
+        max-width: 400px;       /* 加宽到 400px */
+        background: #f9f7f3;
+        color: #4b463d;
+        padding: 10px 12px;
+        border: 1px solid #e8e4dc;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+        }
+
+        /* 小三角 */
+        .tooltip .tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: #e8e4dc transparent transparent transparent;
+        }
+
+        /* 悬停时显示 */
+        .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+        }
+
+        .dict-card {
+        background: #f9f7f3;
+        border: 1px solid #e8e4dc;
+        border-radius: 6px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        }
+        .dict-card:hover {
+        border-color: #8a3324;
+        box-shadow: 0 5px 15px rgba(138, 51, 36, 0.1);
+        }
+        .dict-name {
+        font-size: 1.2rem;
+        color: #8a3324;
+        margin-bottom: 6px;
+        }
+        .dict-effect {
+        font-size: 0.95rem;
+        color: #7a6a52;
+        line-height: 1.5;
+        }
+        
     </style>
 </head>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+    const tooltipLayer = document.createElement("div");
+    tooltipLayer.className = "tooltip-float";
+    document.body.appendChild(tooltipLayer);
+
+    document.body.addEventListener("mouseover", (e) => {
+        const target = e.target.closest(".tooltip");
+        if (target && target.dataset.tooltip) {
+        tooltipLayer.textContent = target.dataset.tooltip;
+        tooltipLayer.style.opacity = "1";
+        }
+    });
+
+    document.body.addEventListener("mousemove", (e) => {
+        if (tooltipLayer.style.opacity === "1") {
+        tooltipLayer.style.left = e.pageX + 15 + "px";
+        tooltipLayer.style.top = e.pageY - 40 + "px";
+        }
+    });
+
+    document.body.addEventListener("mouseout", (e) => {
+        if (e.target.closest(".tooltip")) {
+        tooltipLayer.style.opacity = "0";
+        }
+    });
+    });
+    </script>
 <body>
     <div class="container">
         <header>
@@ -560,6 +655,9 @@
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-section="search" onclick="showSection('search')">文本搜索</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="dict-section" onclick="showSection('dict-section')">药物辞典</a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-section="about" onclick="showSection('about')">关于项目</a>
@@ -592,7 +690,14 @@
                     《医心方》是现存最古的日本医学典籍，由丹波康赖于公元984年编撰完成。全书30卷，收录了大量中国古代医学文献的精华内容，包括《千金方》、《外台秘要》、《诸病源候论》等重要医籍的条文。本数字化平台旨在为研究者提供便捷的检索和浏览工具，推进古代医学文献的研究与传承。
                 </p>
             </section>
-            
+            <!-- 药物辞典 -->
+            <div id="dict-section" class="content-section">
+                <div class="search-section">
+                    <input type="text" id="dict-search" class="search-box" placeholder="搜索药名或拼音...">
+                    <button class="btn" onclick="searchDrug()">搜索</button>
+                </div>
+                <div id="dict-results" class="volume-grid"></div>
+                </div>
             <!-- 浏览全书 -->
             <section id="browse" class="content-section">
                 <h2>《医心方》卷目浏览</h2>
@@ -1608,7 +1713,52 @@
                 });
             }
         });
+        let drugDict = [];
 
+        // 页面加载时先获取 JSON 数据
+        fetch("./drugs.json")
+        .then(response => response.json())
+        .then(data => {
+            drugDict = data;
+            renderDrugs(drugDict);   // ⬅️ 这里默认渲染全部药物
+        })
+        .catch(err => {
+            console.error("加载 drugs.json 出错:", err);
+        });
+
+        function renderDrugs(list) {
+        const resultsBox = document.getElementById("dict-results");
+        resultsBox.innerHTML = "";
+
+        if (list.length === 0) {
+            resultsBox.innerHTML = "<p style='color:#7a6a52'>未找到相关药物</p>";
+            return;
+        }
+
+        list.forEach(d => {
+            const card = document.createElement("div");
+            card.className = "dict-card";
+            card.innerHTML = `
+            <div class="dict-name">${d.name} <small>(${d.pinyin})</small></div>
+            <div class="dict-effect">${d.effect}</div>
+            `;
+            resultsBox.appendChild(card);
+        });
+        }
+
+        function searchDrug() {
+        const query = document.getElementById("dict-search").value.trim().toLowerCase();
+
+        if (!query) {
+            renderDrugs(drugDict);   // ⬅️ 搜索为空 → 显示全部
+            return;
+        }
+
+        const results = drugDict.filter(d =>
+            d.name.includes(query) || d.pinyin.includes(query)
+        );
+        renderDrugs(results);
+        }
         // 加载数据
         fetch('./volume-content.json')
             .then(response => response.json())
