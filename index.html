@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>医心方数字文献库</title>
+    <!-- 霞鹜文楷（开源楷体） -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css">
+    <!-- DOMPurify（用于净化允许的 HTML） -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -12,7 +16,7 @@
             box-sizing: border-box;
             font-family: "SimSun", "宋体", serif;
         }
-        
+
         body {
             background-color: #f8f6f2;
             color: #333;
@@ -511,7 +515,13 @@
         .entry-actions { margin-top: 8px; }
         .btn-link { background: #8a3324; color: white; padding: 6px 10px; border-radius: 4px; display: inline-block; cursor: pointer; border: none; }
         .btn-link:hover { background: #6d281c; }
-        
+                /* 用于 JSON 中的局部楷体标记 */
+        .kaiti {
+            font-family: "KaiTi", "STKaiti","LXGW WenKai",  "Noto Serif SC", serif !important;
+            /* 下面的只是示例默认值，颜色/大小可以用 style 行内覆盖 */
+            /* color: #8a3324; */
+            /* font-size: 1rem; */
+        }
         /* 图片查看器样式 */
         .image-viewer {
             display: none;
@@ -1600,7 +1610,7 @@
         });
 
         // 加载数据
-        fetch('./volume-content.json')
+        fetch('./volume-content_annotation.json')
             .then(response => response.json())
             .then(data => {
                 volumePages = data.volumePages || {};
