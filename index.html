@@ -6,6 +6,8 @@
     <title>医心方数字文献库</title>
     <!-- 霞鹜文楷（开源楷体） -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/style.css">
+    <!-- 备用：Noto Serif SC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC&display=swap" rel="stylesheet">
     <!-- DOMPurify（用于净化允许的 HTML） -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -206,6 +208,144 @@
             color: #7a6a52;
             font-size: 0.95rem;
             line-height: 1.5;
+        }
+        
+        /* 药物辞典样式 */
+        .drugs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .drug-card {
+            background: #f9f7f3;
+            border: 1px solid #e8e4dc;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .drug-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .drug-name {
+            font-size: 1.3rem;
+            color: #8a3324;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e8e4dc;
+            padding-bottom: 8px;
+        }
+        
+        .drug-pinyin {
+            color: #7a6a52;
+            font-style: italic;
+            margin-bottom: 8px;
+        }
+        
+        .drug-latin {
+            color: #5a4a32;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .drug-properties {
+            color: #7a6a52;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            flex-grow: 1;
+        }
+        
+        .drug-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .drug-tag {
+            background: #e8e4dc;
+            color: #5a4a32;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        
+        /* 药物详情样式 */
+        .drug-detail {
+            display: none;
+            margin-top: 30px;
+            background: #f9f7f3;
+            border: 1px solid #e8e4dc;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        
+        .drug-detail.active {
+            display: block;
+        }
+        
+        .drug-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e8e4dc;
+            padding-bottom: 15px;
+        }
+        
+        .drug-detail-name {
+            font-size: 1.8rem;
+            color: #8a3324;
+            margin-bottom: 5px;
+        }
+        
+        .drug-detail-pinyin {
+            color: #7a6a52;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+        
+        .drug-detail-latin {
+            color: #5a4a32;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+        
+        .drug-detail-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .drug-detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .drug-detail-section h3 {
+            color: #8a3324;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e8e4dc;
+            padding-bottom: 5px;
+        }
+        
+        .drug-detail-text {
+            line-height: 1.6;
+            color: #5a4a32;
+        }
+        
+        .drug-detail-image {
+            max-width: 100%;
+            border-radius: 4px;
+            border: 1px solid #e8e4dc;
+            margin-top: 10px;
         }
         
         /* 卷详情样式 */
@@ -471,9 +611,73 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* 搜索结果卡片 */
+        .entry-card {
+            background: #f9f7f3;
+            border: 1px solid #e8e4dc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 12px 0;
+        }
+        .entry-title { font-size: 1rem; color: #8a3324; margin-bottom: 6px; }
+        .entry-preview { color: #635945; margin: 6px 0; }
+        .entry-meta { color: #7a6a52; font-size: 0.85rem; display: flex; gap: 12px; flex-wrap: wrap; }
+        .entry-actions { margin-top: 8px; }
+        .btn-link { background: #8a3324; color: white; padding: 6px 10px; border-radius: 4px; display: inline-block; cursor: pointer; border: none; }
+        .btn-link:hover { background: #6d281c; }
+        
+        /* 用于 JSON 中的局部楷体标记 */
+        .kaiti {
+            font-family: "KaiTi", "STKaiti","LXGW WenKai",  "Noto Serif SC", serif !important;
+        }
+        
+        /* 图片查看器样式 */
+        .image-viewer {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .image-container {
+            max-width: 100%;
+            overflow: auto;
+            margin-bottom: 15px;
+        }
+        
+        .viewer-image {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e8e4dc;
+        }
+        
+        .tooltip {
+            cursor: help;
+            font-weight: normal;          
+            color: inherit;               
+            border-bottom: 1px dashed #8a3324;  
+        }
+
+        .tooltip-float {
+            position: absolute;
+            z-index: 99999;
+            max-width: 400px;       
+            background: #f9f7f3;
+            color: #4b463d;
+            padding: 10px 12px;
+            border: 1px solid #e8e4dc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
         /* 响应式调整 */
         @media (max-width: 768px) {
-            .volume-grid {
+            .volume-grid, .drugs-grid {
                 grid-template-columns: 1fr;
             }
             .pages-grid {
@@ -499,47 +703,9 @@
                 position: static; 
                 max-height: none; 
             }
-        }
-
-        /* 搜索结果卡片 */
-        .entry-card {
-            background: #f9f7f3;
-            border: 1px solid #e8e4dc;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 12px 0;
-        }
-        .entry-title { font-size: 1rem; color: #8a3324; margin-bottom: 6px; }
-        .entry-preview { color: #635945; margin: 6px 0; }
-        .entry-meta { color: #7a6a52; font-size: 0.85rem; display: flex; gap: 12px; flex-wrap: wrap; }
-        .entry-actions { margin-top: 8px; }
-        .btn-link { background: #8a3324; color: white; padding: 6px 10px; border-radius: 4px; display: inline-block; cursor: pointer; border: none; }
-        .btn-link:hover { background: #6d281c; }
-                /* 用于 JSON 中的局部楷体标记 */
-        .kaiti {
-            font-family: "KaiTi", "STKaiti","LXGW WenKai",  "Noto Serif SC", serif !important;
-            /* 下面的只是示例默认值，颜色/大小可以用 style 行内覆盖 */
-            /* color: #8a3324; */
-            /* font-size: 1rem; */
-        }
-        /* 图片查看器样式 */
-        .image-viewer {
-            display: none;
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .image-container {
-            max-width: 100%;
-            overflow: auto;
-            margin-bottom: 15px;
-        }
-        
-        .viewer-image {
-            max-width: 100%;
-            height: auto;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border: 1px solid #e8e4dc;
+            .drug-detail-content {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -557,6 +723,9 @@
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-section="browse" onclick="showSection('browse')">浏览全书</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-section="drugs" onclick="showSection('drugs')">药物辞典</a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" data-section="search" onclick="showSection('search')">文本搜索</a>
@@ -585,12 +754,16 @@
                         <div class="stat-number">2000+</div>
                         <div class="stat-label">条文数量</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-number">300+</div>
+                        <div class="stat-label">药物条目</div>
+                    </div>
                 </div>
                 
                 <h2>项目简介</h2>
-                <p style="line-height: 1.8; color: #555; margin-top: 15px;">
-                    《医心方》是现存最古的日本医学典籍，由丹波康赖于公元984年编撰完成。全书30卷，收录了大量中国古代医学文献的精华内容，包括《千金方》、《外台秘要》、《诸病源候论》等重要医籍的条文。本数字化平台旨在为研究者提供便捷的检索和浏览工具，推进古代医学文献的研究与传承。
-                </p>
+                <p style="line-height: 1.8; color: #555; margin-top: 15px;text-indent: 2em;">
+                        本网站基于现存最古老的日本医学典籍——半井本《医心方》的文献表征与文本信息特征，构建了专门化的古籍数字化平台，旨在推动古籍数字化向更加精细化、学术化和个性化的方向发展。网站提供全文检索、图文对照、药物辞典、资源导航等核心功能模块，为学者研究提供便利工具。
+                 <p style="text-indent: 2em; font-weight: bold;"> 声明：本网站所有资源均用于学术知识交流，不作商业用途。</p>
             </section>
             
             <!-- 浏览全书 -->
@@ -886,6 +1059,52 @@
                 </div>
             </section>
             
+            <!-- 药物辞典页面 -->
+            <section id="drugs" class="content-section">
+                <div class="search-section">
+                    <h2>药物辞典检索</h2>
+                    <input type="text" class="search-box" id="drug-search-input" placeholder="输入药物名称、拼音或拉丁名搜索...">
+                    <div class="search-filters" style="margin-top:10px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+                        <div class="filter-group">
+                            <select id="drug-category-filter">
+                                <option value="">所有分类</option>
+                                <option value="解表药">解表药</option>
+                                <option value="清热药">清热药</option>
+                                <option value="泻下药">泻下药</option>
+                                <option value="祛风湿药">祛风湿药</option>
+                                <option value="化湿药">化湿药</option>
+                                <option value="利水渗湿药">利水渗湿药</option>
+                                <option value="温里药">温里药</option>
+                                <option value="理气药">理气药</option>
+                                <option value="消食药">消食药</option>
+                                <option value="驱虫药">驱虫药</option>
+                                <option value="止血药">止血药</option>
+                                <option value="活血化瘀药">活血化瘀药</option>
+                                <option value="化痰止咳平喘药">化痰止咳平喘药</option>
+                                <option value="安神药">安神药</option>
+                                <option value="平肝息风药">平肝息风药</option>
+                                <option value="开窍药">开窍药</option>
+                                <option value="补虚药">补虚药</option>
+                                <option value="收涩药">收涩药</option>
+                                <option value="涌吐药">涌吐药</option>
+                                <option value="攻毒杀虫止痒药">攻毒杀虫止痒药</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="performDrugSearch()" style="margin-top:10px;">搜索</button>
+                </div>
+                
+                <div id="drugs-grid-container">
+                    <div class="drugs-grid" id="drugs-grid">
+                        <!-- 药物卡片将由JS动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="drug-detail" id="drug-detail">
+                    <!-- 药物详情将由JS动态生成 -->
+                </div>
+            </section>
+            
             <!-- 搜索页面 -->
             <section id="search" class="content-section">
                 <div class="search-section">
@@ -897,16 +1116,38 @@
                             <label for="filter-exact">精确匹配</label>
                         </div>
                         <div class="filter-group">
-                            <input type="checkbox" id="filter-prescription">
-                            <label for="filter-prescription">仅搜索方剂</label>
-                        </div>
-                        <div class="filter-group">
                             <select id="search-volume-filter">
                                 <option value="">所有卷目</option>
                                 <option value="1">第1卷</option>
                                 <option value="2">第2卷</option>
                                 <option value="3">第3卷</option>
-                                <!-- 可继续补充 -->
+                                <option value="4">第4卷</option>
+                                <option value="5">第5卷</option>
+                                <option value="6">第6卷</option>
+                                <option value="7">第7卷</option>
+                                <option value="8">第8卷</option>
+                                <option value="9">第9卷</option>
+                                <option value="10">第10卷</option>
+                                <option value="11">第11卷</option>
+                                <option value="12">第12卷</option>
+                                <option value="13">第13卷</option>
+                                <option value="14">第14卷</option>
+                                <option value="15">第15卷</option>
+                                <option value="16">第16卷</option>
+                                <option value="17">第17卷</option>
+                                <option value="18">第18卷</option>
+                                <option value="19">第19卷</option>
+                                <option value="20">第20卷</option>
+                                <option value="21">第21卷</option>
+                                <option value="22">第22卷</option>
+                                <option value="23">第23卷</option>
+                                <option value="24">第24卷</option>
+                                <option value="25">第25卷</option>
+                                <option value="26">第26卷</option>
+                                <option value="27">第27卷</option>
+                                <option value="28">第28卷</option>
+                                <option value="29">第29卷</option>
+                                <option value="30">第30卷</option>
                             </select>
                         </div>
                     </div>
@@ -920,22 +1161,60 @@
                 <h2>关于本项目</h2>
                 <div style="line-height: 1.8; color: #555;">
                     <h3>项目目标</h3>
-                    <p>本项目致力于将《医心方》进行全面数字化整理，为古代医学文献研究提供现代化的检索和浏览平台。</p>
+                    <p style="text-indent: 2em;"> 本网站基于现存最古老的日本医学典籍——半井本《医心方》的文献表征与文本信息特征，构建了专门化的古籍数字化平台，旨在推动古籍数字化向更加精细化、学术化和个性化的方向发展。</p>
+                    <p style="text-indent: 2em;"> 在文献表征层面，针对该书异体字繁多、字迹色彩丰富、正文-注释-旁注复合结构等独特的视觉特征，本研究采用图文对照技术，最大程度地保留文献的原始形态，并设计了层次化标注体系，实现对不同文本层次的精确区分。</p>
+                    <p style="text-indent: 2em;"> 在文本信息层面，结合《医心方》大量引用中国典籍的内容特点，本研究创建了字书引用标识系统，以凸显其重要的语言学价值，并开发了引用源流追踪功能，系统标记中国医籍的来源脉络。</p>
+                    <p style="text-indent: 2em;"> 网站提供全文检索、图文对照、药物辞典、资源导航等核心功能模块，为学者研究提供便利工具。</p>
+                    <p style="text-indent: 2em; font-weight: bold;"> 声明：本网站所有资源均用于学术知识交流，不作商业用途。</p>
+                    <h3 style="margin-top: 30px;">《医心方》介绍</h3>
+                    <p>（一）版本概况</p>
+                    <p style="text-indent: 2em;"> 《医心方》共三十卷，由丹波康赖撰写，成书于日本永观二年（984年，即中国宋雍熙元年）。《医心方》撰成之后便形成了三个版本系统：宇治本、御本和医家本。日本学者杉立义一在《〈医心方〉版本源流考略》一文中，对这一版本系统进行了详细考辨，并绘制了相应的源流图：</p>
+                    <!-- 插入图片 -->
+                    <div style="text-align: center; margin: 20px 0;">
+                    <img src="images/医心方传写系统.png" alt="医心方版本源流图" style="max-width: 100%; height: auto; border: 1px solid #ccc;">
+                    </div>
+                    <p>（二）半井本《医心方》</p>
+                    <p style="text-indent: 2em;"> 天养二年（1145年），日本曾对《医心方》进行了一次重要的整理工作，以御本为底本，与宇治本、医家本相校勘。这次整理的详细情况见于现存半井本《医心方》第八卷卷首的记录。整理结果称为“新御本”，保存在朝廷秘阁之中。</p>
+                    <p style="text-indent: 2em;"> 直至天正元年（1573年），新御本被赐予半井瑞策。由此，后来的新御本被称为“半井家本”。昭和57年（1982年），半井家本重新归国家所有，并于1984年被指定为国宝。</p>
+                    <div style="text-align: center; margin: 20px 0;">
+                    <img src="images/校勘.png" alt="医心方版本源流图" style="max-width: 100%; height: auto; border: 1px solid #ccc;">
+                    </div>
+                    <p>（三）校勘和数字化价值</p>
+                    <p style="text-indent: 2em;"> 《医心方》作为日本现存最古的医书，征引了中国众多典籍，其校勘价值长期以来受到中日学者的共同重视。</p>
+                    <p style="text-indent: 2em;"> 关于《医心方》的引用文献情况，日本学者冈西为人、小曾户洋，以及中国中医研究院的马继兴、胡乃长、沈澍农等学者都曾进行过不同程度的研究。沈澍农先生以马继兴的研究为基础，进行了一定的简化和改进。据其统计，《医心方》共引用典籍204种，引文10877条。其中绝大部分为医药典籍，非医书类典籍仅有35种66条。</p>
+                    <p>（四）研究资源和网站导航</p>
+
+                    <p style="text-indent: 2em;">1、半井本《医心方》：</p>
+                    <p style="text-indent: 2em;">日本E国宝网站 <a href="https://emuseum.nich.go.jp/top?langId=zh" target="_blank">https://emuseum.nich.go.jp/top?langId=zh</a></p>
+
+                    <p style="text-indent: 2em;">2、宇治本、安政本《医心方》：</p>
+                    <p style="text-indent: 2em;">国書データベース <a href="https://kokusho.nijl.ac.jp/" target="_blank">https://kokusho.nijl.ac.jp/</a></p>
+                    <p style="text-indent: 2em;">国立国会図書館 <a href="https://dl.ndl.go.jp/" target="_blank">https://dl.ndl.go.jp/</a></p>
+
+                    <p style="text-indent: 2em;">3、《医心方》国内出版与研究：</p>
+                    <p style="text-indent: 3em;">（1）影印本：</p>
+                    <p style="text-indent: 4em;">《医心方》（安政本），人民卫生出版社1993年影印出版</p>
+
+                    <p style="text-indent: 3em;">（2）安政本校对本：</p>
+                    <p style="text-indent: 4em;">北京华龄出版社2020年版</p>
+                    <p style="text-indent: 4em;">北京人民卫生出版社1955年版</p>
+                    <p style="text-indent: 4em;">翟双庆、张瑞贤等校注，北京华夏出版社1993年版</p>
+
+                    <p style="text-indent: 3em;">（3）半井本校对本：</p>
+                    <p style="text-indent: 4em;">高文铸等校注，北京华夏出版社2023年版</p>
+                    <p style="text-indent: 4em;">高文铸等校注，北京华夏出版社1966年版</p>
+
+                    <p style="text-indent: 2em;">4、《医心方》日本学者研究（专著）：</p>
+                    <p style="text-indent: 3em;">《醫心方の伝来》，京都：思文阁出版，1991年版</p>
+                    <p style="text-indent: 3em;">《醫心方の研究》，大阪：オリエント出版社，1994年版</p>
                     
-                    <h3 style="margin-top: 30px;">技术特点</h3>
-                    <ul style="margin: 15px 0; padding-left: 25px;">
-                        <li>纯静态网站，访问速度快</li>
-                        <li>响应式设计，支持移动端</li>
-                        <li>全文检索功能</li>
-                        <li>分类浏览系统</li>
-                        <li>PDF和图片双模式查看器，适应不同资源类型</li>
-                    </ul>
-                    
+                    <h3 style="margin-top: 30px;">本网站参考文献：</h3>
+                    <p style="text-indent: 3em;">李景荣等校释《备急干金要方校释》，人民卫生出版社1998年版</p>
+                    <p style="text-indent: 3em;">孙猛著《日本国见在书目录详考》，上海古籍出版社2015年版</p>
+
                     <h3 style="margin-top: 30px;">使用说明</h3>
-                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献。平台同时支持PDF和图片查看，确保在不同环境下都能正常显示文献内容。</p>
+                    <p>您可以通过导航栏切换不同功能模块，使用搜索功能查找特定内容，或按卷目浏览完整文献与药物辞典。平台同时支持PDF查看，确保在不同环境下都能正常显示文献内容。推荐使用Google Chrome浏览器打开</p>
                     
-                    <h3 style="margin-top: 30px; color: #c0392b;">关于PDF加载问题</h3>
-                    <p>如果PDF无法在浏览器中加载，可能是CORS（跨源资源共享）策略导致的。本平台提供了图片查看器作为备选方案，确保文献内容可以正常显示。</p>
                 </div>
             </section>
         </main>
@@ -958,6 +1237,7 @@
         let pageTexts = {};
         let pageMeta = {};
         let searchIndex = [];
+        let drugsData = [];
         
         // 状态
         let currentVolume = 0;
@@ -971,6 +1251,7 @@
         let lastSearchQuery = "";
         let currentPageTextRaw = "";
         let currentVolumePages = [];
+        let currentDrugDetail = null;
 
         // PDF.js viewer 基础URL（使用Mozilla的在线版本或自己部署的版本）
         const viewerBase = 'https://mozilla.github.io/pdf.js/web/viewer.html';
@@ -1048,6 +1329,166 @@
                 document.getElementById('image-viewer').style.display = 'none';
                 document.querySelector('.volume-grid').style.display = 'grid';
             }
+            
+            if (sectionName === 'drugs') {
+                // 切换到药物辞典时加载药物数据
+                if (drugsData.length === 0) {
+                    loadDrugsData();
+                } else {
+                    displayDrugsGrid(drugsData);
+                }
+            }
+        }
+
+        // 药物辞典功能
+        function loadDrugsData() {
+            fetch('./drugs.json')
+                .then(response => response.json())
+                .then(data => {
+                    drugsData = data;
+                    displayDrugsGrid(data);
+                })
+                .catch(err => {
+                    console.warn('无法加载药物数据:', err);
+                    // 示例数据
+                    drugsData = [
+                        {
+                            id: 1,
+                            name: "人参",
+                            pinyin: "renshen",
+                            latin: "Panax ginseng",
+                            category: "补虚药",
+                            properties: "甘、微苦，平。归脾、肺、心经。",
+                            efficacy: "大补元气，复脉固脱，补脾益肺，生津养血，安神益智。",
+                            usage: "3～9g，另煎兑服；也可研粉吞服，一次2g，一日2次。",
+                            contraindications: "不宜与藜芦、五灵脂同用。",
+                            description: "人参为五加科植物人参的干燥根。栽培者为\"园参\"，野生者为\"山参\"。多于秋季采挖，洗净经晒干或烘干。",
+                            imageUrl: "./images/renshen.jpg"
+                        },
+                        {
+                            id: 2,
+                            name: "黄芪",
+                            pinyin: "huangqi",
+                            latin: "Astragalus membranaceus",
+                            category: "补虚药",
+                            properties: "甘，微温。归肺、脾经。",
+                            efficacy: "补气升阳，固表止汗，利水消肿，生津养血，行滞通痹，托毒排脓，敛疮生肌。",
+                            usage: "9～30g。",
+                            contraindications: "表实邪盛、气滞湿阻、食积内停、阴虚阳亢、疮痈初起或溃后热毒尚盛者不宜使用。",
+                            description: "黄芪为豆科植物蒙古黄芪或膜荚黄芪的干燥根。春、秋二季采挖，除去须根和根头，晒干。",
+                            imageUrl: "./images/huangqi.jpg"
+                        }
+                    ];
+                    displayDrugsGrid(drugsData);
+                });
+        }
+
+        function displayDrugsGrid(drugs) {
+            const gridContainer = document.getElementById('drugs-grid');
+            if (!gridContainer) return;
+            
+            gridContainer.innerHTML = drugs.map(drug => `
+                <div class="drug-card" onclick="showDrugDetail(${drug.id})">
+                    <div class="drug-name">${drug.name}</div>
+                    <div class="drug-pinyin">${drug.pinyin}</div>
+                    <div class="drug-latin">${drug.latin}</div>
+                    <div class="drug-properties">${drug.properties}</div>
+                    <div class="drug-tags">
+                        <span class="drug-tag">${drug.category}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function showDrugDetail(drugId) {
+            const drug = drugsData.find(d => d.id === drugId);
+            if (!drug) return;
+            
+            currentDrugDetail = drug;
+            const detailContainer = document.getElementById('drug-detail');
+            const listContainer = document.getElementById('drugs-grid-container');
+            
+            detailContainer.innerHTML = `
+                <button class="btn back-btn" onclick="backToDrugsList()">返回药物列表</button>
+                <div class="drug-detail-header">
+                    <div>
+                        <div class="drug-detail-name">${drug.name}</div>
+                        <div class="drug-detail-pinyin">${drug.pinyin}</div>
+                        <div class="drug-detail-latin">${drug.latin}</div>
+                    </div>
+                </div>
+                <div class="drug-detail-content">
+                    <div>
+                        <div class="drug-detail-section">
+                            <h3>性味归经</h3>
+                            <div class="drug-detail-text">${drug.properties}</div>
+                        </div>
+                        <div class="drug-detail-section">
+                            <h3>功效</h3>
+                            <div class="drug-detail-text">${drug.efficacy}</div>
+                        </div>
+                        <div class="drug-detail-section">
+                            <h3>用法用量</h3>
+                            <div class="drug-detail-text">${drug.usage}</div>
+                        </div>
+                        <div class="drug-detail-section">
+                            <h3>禁忌</h3>
+                            <div class="drug-detail-text">${drug.contraindications}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="drug-detail-section">
+                            <h3>药物描述</h3>
+                            <div class="drug-detail-text">${drug.description}</div>
+                        </div>
+                        ${drug.imageUrl ? `
+                        <div class="drug-detail-section">
+                            <h3>药物图片</h3>
+                            <img src="${drug.imageUrl}" alt="${drug.name}" class="drug-detail-image" onerror="this.style.display='none'">
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            // 切换视图
+            listContainer.style.display = 'none';
+            detailContainer.style.display = 'block';
+        }
+        function hideDrugDetail() {
+            const detailContainer = document.getElementById('drug-detail');
+            detailContainer.classList.remove('active');
+            currentDrugDetail = null;
+        }
+        function backToDrugsList() {
+            const detailContainer = document.getElementById('drug-detail');
+            const listContainer = document.getElementById('drugs-grid-container');
+            
+            // 隐藏详情，显示列表
+            detailContainer.style.display = 'none';
+            listContainer.style.display = 'grid'; // 如果原本是grid布局
+        }
+        function performDrugSearch() {
+            const query = document.getElementById('drug-search-input').value.trim().toLowerCase();
+            const category = document.getElementById('drug-category-filter').value;
+            
+            let filteredDrugs = drugsData;
+            
+            if (query) {
+                filteredDrugs = filteredDrugs.filter(drug => 
+                    drug.name.toLowerCase().includes(query) ||
+                    drug.pinyin.toLowerCase().includes(query) ||
+                    drug.latin.toLowerCase().includes(query) ||
+                    drug.efficacy.toLowerCase().includes(query)
+                );
+            }
+            
+            if (category) {
+                filteredDrugs = filteredDrugs.filter(drug => drug.category === category);
+            }
+            
+            displayDrugsGrid(filteredDrugs);
+            
+            // 隐藏当前显示的药物详情
+            hideDrugDetail();
         }
 
         // 显示卷详情
@@ -1604,6 +2045,16 @@
                 imagePageInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         goToImagePage(this.value);
+                    }
+                });
+            }
+            
+            // 药物搜索框回车事件
+            const drugSearchInput = document.getElementById('drug-search-input');
+            if (drugSearchInput) {
+                drugSearchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        performDrugSearch();
                     }
                 });
             }
