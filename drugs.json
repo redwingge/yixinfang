@@ -1,17 +1,26 @@
 [
   {
-    "name": "麻黄",
-    "pinyin": "ma huang",
-    "effect": "发汗解表，宣肺平喘，利水消肿",
-    "properties": {
-      "nature": "辛、微苦，温",
-      "meridian": "归肺、膀胱经",
-      "category": "解表药"
-    },
-    "usage": "煎服，2-9g。发汗解表宜生用，止咳平喘多炙用",
-    "contraindications": "表虚自汗、阴虚盗汗及肺肾虚喘者慎用",
-    "prescriptions": ["麻黄汤", "麻杏石甘汤", "小青龙汤"],
-    "description": "麻黄为麻黄科植物草麻黄、中麻黄或木贼麻黄的干燥草质茎...",
-    "references": "《神农本草经》、《伤寒论》"
+    "name": "人参",
+    "pinyin": "renshen",
+    "latin": "Panax ginseng",
+    "category": "补虚药",
+    "properties": "甘、微苦，平。归脾、肺、心经。",
+    "efficacy": "大补元气，复脉固脱，补脾益肺，生津养血，安神益智。",
+    "usage": "3～9g，另煎兑服；也可研粉吞服，一次2g，一日2次。",
+    "contraindications": "不宜与藜芦、五灵脂同用。",
+    "description": "人参为五加科植物人参的干燥根。栽培者为\"园参\"，野生者为\"山参\"。多于秋季采挖，洗净经晒干或烘干。",
+    "imageUrl": "./images/renshen.jpg"
+  },
+  {
+    "name": "黄芪",
+    "pinyin": "huangqi",
+    "latin": "Astragalus membranaceus",
+    "category": "补虚药",
+    "propertie": "甘，微温。归肺、脾经。",
+    "efficacy": "补气升阳，固表止汗，利水消肿，生津养血，行滞通痹，托毒排脓，敛疮生肌。",
+    "usage": "9～30g。",
+    "contraindications": "表实邪盛、气滞湿阻、食积内停、阴虚阳亢、疮痈初起或溃后热毒尚盛者不宜使用。",
+    "description": "黄芪为豆科植物蒙古黄芪或膜荚黄芪的干燥根。春、秋二季采挖，除去须根和根头，晒干。",
+    "imageUrl": "./images/huangqi.jpg"
   }
 ]
